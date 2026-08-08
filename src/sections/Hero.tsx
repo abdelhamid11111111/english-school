@@ -76,7 +76,12 @@ export function Hero() {
     >
       <HeroBackdrop />
 
-      <div className="shell relative z-10 w-full">
+      {/* `lg:static` is load-bearing: it drops `.shell` out of the positioned
+          ancestor chain so the card deck can anchor to the *section* — i.e.
+          the viewport's edges — rather than to this centred, max-width content
+          column. That is what lets the orbit bleed off the top and right of
+          the screen instead of stopping at the gutter. */}
+      <div className="shell relative z-10 w-full lg:static">
         <div className="grid items-center gap-14 lg:grid-cols-12 lg:gap-10">
           {/* ---------------------------------------------- left column --- */}
           <motion.div
@@ -90,7 +95,7 @@ export function Hero() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.8, ease: EASE_OUT_EXPO, delay: 0.15 }}
             >
-              <Eyebrow>Lisboa · Online · Since 2009</Eyebrow>
+              <Eyebrow> Since 2009</Eyebrow>
             </motion.div>
 
             <h1 className="hero-h1 text-display mt-7 max-w-[12ch]">
@@ -190,14 +195,34 @@ export function Hero() {
             </motion.div>
           </motion.div>
 
-          {/* --------------------------------------------- right column --- */}
+          {/* ------------------------------------------- orbiting deck --- */}
           {/* Two nested layers on purpose: a `style` MotionValue and an
               `animate` target on the same transform axis fight each other, so
               scroll-parallax lives on the outer node and the load entrance on
-              the inner one. */}
+              the inner one.
+
+              Below `lg` the deck stays in the flow beneath the copy — a
+              cluster bleeding off the top-right would land straight on the
+              headline on a phone. From `lg` it leaves the grid entirely and
+              pins to the section's top-right corner. Going absolute also
+              means the deck can no longer contribute height, so the hero
+              still resolves inside one screen on a short laptop no matter how
+              far the cards travel.
+
+              The offsets are what aim the circle. The deck box is square and
+              the orbit fills it, so the circle's centre lands at the box's
+              centre: `47vw` wide pulled `12vw` past the right edge and `13vw`
+              above the top puts that centre at roughly 88% of the viewport
+              width and ~200px down. The whole right half of the circle is
+              then off-screen, leaving only the descending left arc visible —
+              cards enter over the fold and exit past the right edge.
+
+              Everything is in `vw` so the composition scales as one piece; a
+              `%` top offset would drift against the circle as the viewport
+              got shorter. */}
           <motion.div
             style={prefersReduced ? undefined : { y: deckY }}
-            className="lg:col-span-5"
+            className="z-20 lg:absolute lg:-top-[13vw] lg:-right-[12vw] lg:w-[47vw] lg:max-w-[56rem]"
           >
             <motion.div
               initial={{ opacity: 0, y: 56, scale: 0.94 }}
