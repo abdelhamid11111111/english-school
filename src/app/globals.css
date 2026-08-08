@@ -1,26 +1,329 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
+/* ==========================================================================
+   LUMEN ENGLISH — DESIGN TOKENS
+   --------------------------------------------------------------------------
+   Near-white paper, near-black ink, one high-voltage lime accent.
+
+   Accent usage rule — this is the thing that keeps a bright accent from
+   looking cheap: on light grounds the lime is only ever used as a *fill*
+   behind dark text (buttons, chips, highlight blocks), never as thin lines or
+   small text. Lime on white is ~1.2:1, so a 2px lime rule is invisible and a
+   lime label is unreadable. Thin indicators on light use --ink; lime lines
+   only appear on the dark bands, where they hit ~13:1.
+
+   Two accompanying tokens exist for the cases where accent *colour* is needed
+   on a light ground:
+     --accent-ink    dark olive, 8.4:1 on --bg — for accent-coloured text
+     --accent-strong mid olive, 3.8:1 on --bg — non-text UI, or text ≥24px
+
+   Palette swapping: every colour is a plain CSS variable resolved through
+   `@theme inline`, so the site re-skins by setting `data-palette` on <html>.
+   ========================================================================== */
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  /* Colour — resolved from the active palette */
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-sand: var(--sand);
+  --color-ink: var(--ink);
+  --color-ink-soft: var(--ink-soft);
+  --color-line: var(--line);
+  --color-brand: var(--brand);
+  --color-brand-2: var(--brand-2);
+  --color-accent: var(--accent);
+  --color-accent-ink: var(--accent-ink);
+  --color-accent-strong: var(--accent-strong);
+  --color-danger: var(--danger);
+  /* Star-rating gold. Fixed across all three palettes, unlike every other
+     colour on this page — a review rating is conventionally gold regardless
+     of brand, the way a checkmark is conventionally green. Canonical golds
+     (#FBBF24 and similar) sit at ~1.6:1 on --bg and all but disappear; this
+     is pulled toward DarkGoldenrod until it clears the 3:1 floor for
+     non-text UI (3.14:1) while still reading unambiguously as gold. */
+  --color-rating: #b8860b;
+  --color-on-dark: var(--on-dark);
+  --color-on-dark-soft: var(--on-dark-soft);
+
+  /* Typography — Inter for everything.
+     One neo-grotesque across display and body, differentiated by weight and
+     tracking rather than by family. `--font-display` is kept as a separate
+     token so a display face can be reintroduced without touching components. */
+  --font-display: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+
+  /* Fluid type scale. Every step is clamp()-based so there is exactly one
+     source of truth for size across breakpoints and no CLS on resize.
+     Tracking tightens as size grows — the correction a grotesque needs at
+     display sizes, and the difference between "big text" and "typeset". */
+  --text-display: clamp(2.75rem, 6.6vw, 5.75rem);
+  --text-display--line-height: 1.02;
+  --text-display--letter-spacing: -0.042em;
+
+  --text-h2: clamp(2rem, 4.3vw, 3.5rem);
+  --text-h2--line-height: 1.08;
+  --text-h2--letter-spacing: -0.035em;
+
+  --text-h3: clamp(1.4375rem, 2.4vw, 2rem);
+  --text-h3--line-height: 1.18;
+  --text-h3--letter-spacing: -0.028em;
+
+  --text-lead: clamp(1.0625rem, 1.35vw, 1.25rem);
+  --text-lead--line-height: 1.62;
+  --text-lead--letter-spacing: -0.014em;
+
+  --text-micro: 0.6875rem;
+  --text-micro--line-height: 1;
+  --text-micro--letter-spacing: 0.16em;
+
+  /* Squircle radii — concentric maths for the double-bezel shells */
+  --radius-bezel: 2rem;
+  --radius-core: 1.625rem; /* calc(2rem - 0.375rem) */
+  --radius-bezel-lg: 2.75rem;
+  --radius-core-lg: 2.25rem;
+
+  /* Motion — no linear / ease-in-out anywhere in this build */
+  --ease-fluid: cubic-bezier(0.32, 0.72, 0, 1);
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+
+  /* Ambient, highly diffused shadows — never harsh drop shadows */
+  --shadow-ambient: 0 1px 2px rgb(16 18 17 / 0.03),
+    0 8px 24px -8px rgb(16 18 17 / 0.06), 0 32px 64px -24px rgb(16 18 17 / 0.1);
+  --shadow-lift: 0 2px 4px rgb(16 18 17 / 0.04),
+    0 16px 40px -12px rgb(16 18 17 / 0.1), 0 48px 96px -32px rgb(16 18 17 / 0.16);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+/* --------------------------------------------------------------------------
+   PALETTES
+   Option A (default) — "Paper + Lime": near-white ground, near-black ink,
+   electric lime accent. Contemporary, high-energy, still readable.
+   -------------------------------------------------------------------------- */
+:root,
+[data-palette="lime"] {
+  --bg: #fbfbfa;
+  --surface: #ffffff;
+  --sand: #f1f1ee;
+  --ink: #101211;
+  --ink-soft: #5b615e; /* 6.1:1 on --bg — WCAG AA for body copy */
+  --line: rgb(16 18 17 / 0.1);
+  --brand: #101211; /* dark bands: courses panel, footer */
+  --brand-2: #1e2220;
+  --accent: #bef264; /* fills only on light grounds */
+  --accent-ink: #3f5210; /* 8.4:1 on --bg — accent-coloured text */
+  --accent-strong: #6b8c18; /* 3.8:1 on --bg — non-text UI, or text ≥24px */
+  --danger: #c0392b; /* 5.3:1 on --bg — form validation only */
+  --on-dark: #f4f5f3;
+  --on-dark-soft: #9da3a0; /* 7.3:1 on --brand */
+}
+
+/* Option B — "Midnight + Warm Gold": bone paper, deep navy, antique gold.
+   Cooler and more institutional. */
+[data-palette="midnight"] {
+  --bg: #f5f1e8;
+  --surface: #fffdf8;
+  --sand: #e9e2d3;
+  --ink: #101d2c;
+  --ink-soft: #55606d;
+  --line: rgb(16 29 44 / 0.1);
+  --brand: #0e2038;
+  --brand-2: #1a3557;
+  --accent: #d9ad4a;
+  --accent-ink: #7d5a12;
+  --accent-strong: #9c7418;
+  --danger: #b3261e;
+  --on-dark: #f2eee5;
+  --on-dark-soft: #a4b1c2;
+}
+
+/* Option C — "Charcoal + Electric Coral": near-neutral fog, graphite ink,
+   high-energy coral. */
+[data-palette="coral"] {
+  --bg: #f3f2ef;
+  --surface: #fdfdfc;
+  --sand: #e6e4df;
+  --ink: #17171a;
+  --ink-soft: #5b5b60;
+  --line: rgb(23 23 26 / 0.1);
+  --brand: #16161a;
+  --brand-2: #2a2a31;
+  --accent: #ff6a4d;
+  --accent-ink: #b7301b;
+  --accent-strong: #d43c22;
+  --danger: #b3261e;
+  --on-dark: #f2f1ee;
+  --on-dark-soft: #a8a8ad;
+}
+
+/* --------------------------------------------------------------------------
+   BASE
+   -------------------------------------------------------------------------- */
+@layer base {
+  html {
+    /* GSAP ScrollTrigger drives the pinned sections; native smooth scrolling
+       fights it, so anchor smoothing is opt-in per-link via JS instead. */
+    scroll-behavior: auto;
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    background-color: var(--color-bg);
+    color: var(--color-ink);
+    font-family: var(--font-sans);
+    font-synthesis-weight: none;
+    text-rendering: optimizeLegibility;
+  }
+
+  /* Visible focus ring for keyboard users only. Uses --accent-ink rather than
+     the raw lime, which would all but vanish against the page. */
+  :focus-visible {
+    outline: 2px solid var(--color-accent-ink);
+    outline-offset: 3px;
+    border-radius: 4px;
+  }
+
+  ::selection {
+    background-color: var(--color-accent);
+    color: var(--color-ink);
+  }
+
+  /* Headings share the body family and are separated by weight + tracking.
+     600 rather than 700: at display sizes Inter's bold closes up the counters
+     and the line starts to read as a block rather than as words. */
+  h1,
+  h2,
+  h3 {
+    font-family: var(--font-display);
+    font-weight: 600;
   }
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+@layer utilities {
+  /* Standard section rhythm — the layout breathes heavily by default. */
+  .section-y {
+    padding-block: clamp(6rem, 12vw, 11rem);
+  }
+
+  /* Editorial grid gutter, capped so line-length stays readable on ultrawide. */
+  .shell {
+    width: 100%;
+    max-width: 84rem;
+    margin-inline: auto;
+    padding-inline: 1.25rem;
+  }
+  @media (min-width: 768px) {
+    .shell {
+      padding-inline: 2.5rem;
+    }
+  }
+  @media (min-width: 1280px) {
+    .shell {
+      padding-inline: 3.5rem;
+    }
+  }
+
+  .text-balance-tight {
+    text-wrap: balance;
+  }
+
+  /* ------------------------------------------------------------------------
+     HERO FIT
+     The hero has to resolve inside one viewport, and on a 1440×800-class
+     laptop the stack (eyebrow + two display lines + lead + CTAs + social
+     proof) overruns it. These queries compress the vertical rhythm as the
+     viewport gets shorter.
+
+     Height *media queries* rather than `dvh` units in the type scale: on
+     mobile the URL bar collapsing changes `dvh` continuously, which would
+     resize the headline mid-scroll. A media query only crosses a threshold.
+
+     Scoped to `min-width: 1024px` — below that the hero is a single column
+     and is expected to scroll.
+     ---------------------------------------------------------------------- */
+  .hero-fit {
+    padding-top: 7.5rem;
+    padding-bottom: 3.5rem;
+  }
+
+  @media (min-width: 768px) {
+    .hero-fit {
+      padding-top: 8.5rem;
+      padding-bottom: 5rem;
+    }
+  }
+
+  /* Laptop heights — the common case that was overflowing. */
+  @media (min-width: 1024px) and (max-height: 900px) {
+    .hero-fit {
+      padding-top: 6.75rem;
+      padding-bottom: 3rem;
+    }
+    .hero-fit .hero-h1 {
+      font-size: clamp(2.5rem, 4.6vw, 4.25rem);
+    }
+    .hero-fit .hero-lead {
+      margin-top: 1.5rem;
+      font-size: 1.0625rem;
+    }
+    .hero-fit .hero-cta {
+      margin-top: 2rem;
+    }
+    .hero-fit .hero-proof {
+      margin-top: 2rem;
+    }
+  }
+
+  /* Short laptops / windowed browsers with heavy chrome. */
+  @media (min-width: 1024px) and (max-height: 780px) {
+    .hero-fit {
+      padding-top: 6rem;
+      padding-bottom: 2.25rem;
+    }
+    .hero-fit .hero-h1 {
+      font-size: clamp(2.25rem, 3.9vw, 3.5rem);
+    }
+    .hero-fit .hero-eyebrow {
+      margin-top: 0;
+    }
+    .hero-fit .hero-lead {
+      margin-top: 1.25rem;
+    }
+    .hero-fit .hero-cta,
+    .hero-fit .hero-proof {
+      margin-top: 1.5rem;
+    }
+  }
+
+  /* Lime highlight behind a run of dark text — the one place the accent is
+     allowed to carry type on a light ground, because the text sits *on* it
+     (ink on lime is 14.4:1) rather than being drawn *in* it. */
+  .mark-accent {
+    background-color: var(--color-accent);
+    box-decoration-break: clone;
+    -webkit-box-decoration-break: clone;
+    padding-inline: 0.18em;
+    margin-inline: -0.06em;
+    border-radius: 0.14em;
+  }
+
+  /* GPU hint, applied only while an element is actively animating. */
+  .will-animate {
+    will-change: transform, opacity;
+  }
+}
+
+/* --------------------------------------------------------------------------
+   REDUCED MOTION
+   Kills transform/opacity choreography wholesale. The JS layer also reads
+   the same media query so GSAP timelines and R3F render loops opt out too.
+   -------------------------------------------------------------------------- */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }
