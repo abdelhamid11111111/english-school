@@ -154,9 +154,6 @@ export function Hero() {
               <MagneticButton href="#contact">
                 Book a free placement
               </MagneticButton>
-              <MagneticButton href="#courses" variant="outline" icon={false}>
-                <span className="pr-5">See the courses</span>
-              </MagneticButton>
             </motion.div>
 
             {/* Social proof — small, factual, no badge clutter. */}

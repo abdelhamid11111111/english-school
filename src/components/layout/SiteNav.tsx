@@ -78,10 +78,14 @@ export function SiteNav() {
           animate={{ y: 0, opacity: 1 }}
           transition={{ duration: 1, ease: EASE_OUT_EXPO, delay: 0.35 }}
           className={cn(
-            "pointer-events-auto flex w-full max-w-3xl items-center gap-2 rounded-full",
+            "pointer-events-auto relative flex w-full max-w-3xl items-center gap-2 rounded-full",
             "bg-surface/72 supports-[backdrop-filter]:bg-surface/55 backdrop-blur-2xl",
             "ring-1 ring-ink/[0.07] ring-inset",
-            "p-1.5 pl-5 transition-[box-shadow,background-color] duration-700 ease-fluid",
+            // The CTA used to set the desktop height (44px well + 2×6px padding).
+            // It's gone, so pin the island to that measurement explicitly —
+            // otherwise the nav collapses to the link text on md and up. Mobile
+            // is still sized by the 44px toggle and needs no floor.
+            "p-1.5 pl-5 md:min-h-[4.25rem] transition-[box-shadow,background-color] duration-700 ease-fluid",
             condensed && "shadow-ambient",
           )}
         >
@@ -97,7 +101,9 @@ export function SiteNav() {
             <span className="text-accent-strong">.</span>
           </a>
 
-          <ul className="hidden items-center gap-1 md:flex">
+          {/* Centred on the pill itself, not on the space left over beside the
+              wordmark — so it stays optically centred regardless of brand width. */}
+          <ul className="hidden items-center gap-1 md:absolute md:left-1/2 md:flex md:-translate-x-1/2">
             {NAV_LINKS.map((link) => (
               <li key={link.href}>
                 <a
@@ -106,19 +112,13 @@ export function SiteNav() {
                     e.preventDefault();
                     goTo(link.href);
                   }}
-                  className="text-ink-soft hover:text-ink relative rounded-full px-3.5 py-2 text-[0.875rem] transition-colors duration-500 ease-fluid"
+                  className="text-ink-soft hover:text-ink relative rounded-full px-3.5 py-2 text-[0.875rem] whitespace-nowrap transition-colors duration-500 ease-fluid"
                 >
                   {link.label}
                 </a>
               </li>
             ))}
           </ul>
-
-          <div className="hidden md:block">
-            <MagneticButton href="#contact" className="text-sm">
-              Book a placement
-            </MagneticButton>
-          </div>
 
           {/* Mobile toggle — morphing hamburger. */}
           <button
