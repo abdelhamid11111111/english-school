@@ -51,41 +51,50 @@ import type { HeroCard } from "@/types";
  */
 
 /**
- * Orbit radius as a fraction of the box. Equal on both axes, and the box is
- * square, so the path is a true circle rather than an ellipse — the cards
- * describe an arc of constant curvature instead of accelerating through the
- * narrow ends an ellipse would give them.
+ * Orbit radius as a fraction of the box, desktop only. Equal on both axes,
+ * and the box is square, so the path is a true circle rather than an
+ * ellipse — the cards describe an arc of constant curvature instead of
+ * accelerating through the narrow ends an ellipse would give them.
  *
  * The ratio that matters is radius-to-card-width: at `0.5 / 0.65 ≈ 0.77` the
  * cards overlap by roughly the amount the reference composition does. Change
  * `r` and the card width in tandem or the spacing between cards along the arc
  * changes with it.
  *
- * Mobile tightens the radius because there the deck sits in the flow beneath
- * the CTAs, where a circle this wide would swing up into the copy above it.
+ * Below `lg` the deck doesn't orbit at all — see `MOBILE_STACK` and
+ * `HeroOrbitCard`'s mobile branch.
  */
-const ORBIT = {
-  desktop: { r: 0.5 },
-  mobile: { r: 0.34 },
-} as const;
+const ORBIT_R = 0.5;
 
 /**
  * Where the circle's centre sits, as a fraction of the box, measured from the
- * box's own centre. `+cx` moves it right, `+cy` moves it down.
+ * box's own centre. `+cx` moves it right, `+cy` moves it down. Desktop only.
  *
  * This is the lever for repositioning the arc without touching layout: the
  * cards are absolutely positioned off `top-1/2 left-1/2`, so shifting the
  * centre slides the whole path and nothing else in the hero moves with it.
  * Raising `cx` pushes the arc right, so cards exit the frame sooner; lowering
  * `cy` lifts it, so more of the bottom of the circle is on screen.
- *
- * Kept separate per breakpoint for the same reason `ORBIT` is — the deck is
- * anchored differently above and below `lg`.
  */
-const CENTER = {
-  desktop: { cx: 0.18, cy: -0.22 },
-  mobile: { cx: 0.1, cy: -0.1 },
-} as const;
+const CENTER = { cx: 0.18, cy: -0.22 };
+
+/**
+ * Below `lg` the wide circular orbit doesn't fit: scaled down to a phone's
+ * width it either overlaps the card art it's meant to be showcasing or spills
+ * past the container's edge and gets clipped by the hero's `overflow-hidden`.
+ * Instead the deck becomes a single-axis "peek" carousel — the front card
+ * centres itself, its neighbours peek in from either side at a reduced scale,
+ * and the card directly opposite fades out, which is what hides the moment it
+ * swaps sides.
+ *
+ * - `spread`: how far a card travels from centre, as a fraction of the box's
+ *   width, by the time it's fully faded (see `mobileOpacity` below).
+ * - `scaleDrop`: how much smaller a card gets over that same travel.
+ * - `lift`: how far a receding card sinks, as a fraction of the box's
+ *   height — a small cue that it's dropping behind the front card rather than
+ *   sliding past it on the same plane.
+ */
+const MOBILE_STACK = { spread: 0.42, scaleDrop: 0.22, lift: 0.05 };
 
 /**
  * The angle at which a card is considered to have just entered the visible
@@ -112,8 +121,8 @@ export function HeroCardDeck({ cards, className }: HeroCardDeckProps) {
   const { containerRef, width, height, progress, nearest, goTo, pause, resume, isStatic } =
     useCardOrbit({ length: cards.length });
 
-  // Selects the orbit radius: the two breakpoints place the deck differently,
-  // so they need different circles. See `ORBIT`.
+  // Picks which per-card branch below is live: the desktop circular orbit
+  // (`ORBIT_R`/`CENTER`) or the mobile peek carousel (`MOBILE_STACK`).
   const isDesktop = useMediaQuery("(min-width: 1024px)");
 
   return (
@@ -130,18 +139,25 @@ export function HeroCardDeck({ cards, className }: HeroCardDeckProps) {
         // Fixed aspect box: the cards are absolutely positioned, so without an
         // explicit ratio here the section would collapse and shift on load.
         //
-        // Square, because equal radii on a square box is what makes the path a
-        // circle. Width-driven at every size — at `lg` the width comes from the
-        // absolutely-positioned wrapper in `Hero`, so there is no need to cap
-        // the height against the viewport: an absolute element can't push the
-        // hero past one screen however tall it gets.
+        // `lg:aspect-square`, because equal radii on a square box is what
+        // makes the desktop path a circle. Width-driven at every size — at
+        // `lg` the width comes from the absolutely-positioned wrapper in
+        // `Hero`, so there is no need to cap the height against the viewport:
+        // an absolute element can't push the hero past one screen however
+        // tall it gets.
         //
-        // Cards travel well past this box as they orbit, and are meant to. The
-        // hero section's `overflow-hidden` is the real clip boundary, chosen
-        // over a soft edge mask because a mask would fade cards out mid-travel
-        // — the reference composition has them slide off a hard screen edge at
-        // full strength.
-        className="relative aspect-square w-full max-w-[34rem] lg:max-w-none"
+        // Below `lg` the deck is the flatter peek carousel (see
+        // `MOBILE_STACK`), which only needs enough height for one card plus
+        // its scale/lift travel — `aspect-[2/1]` wraps that closely instead
+        // of leaving the dead space a square box would under a card cluster
+        // that never reaches its edges.
+        //
+        // On desktop, cards travel well past this box as they orbit, and are
+        // meant to. The hero section's `overflow-hidden` is the real clip
+        // boundary, chosen over a soft edge mask because a mask would fade
+        // cards out mid-travel — the reference composition has them slide off
+        // a hard screen edge at full strength.
+        className="relative aspect-[2/1] w-full max-w-[34rem] lg:aspect-square lg:max-w-none"
       >
         {cards.map((card, index) => (
           <HeroOrbitCard
@@ -216,34 +232,74 @@ function HeroOrbitCard({
 }: HeroOrbitCardProps) {
   const theta = useTransform(progress, (p) => TAU * (p + index / length));
 
-  const { r } = isDesktop ? ORBIT.desktop : ORBIT.mobile;
-  const { cx, cy } = isDesktop ? CENTER.desktop : CENTER.mobile;
-
-  const x = useTransform([theta, width], ([t, w]: number[]) => w * (cx + r * Math.sin(t)));
-  const y = useTransform([theta, height], ([t, h]: number[]) => h * (cy + r * Math.cos(t)));
+  // ------------------------------------------------------- desktop orbit ---
+  const x = useTransform(
+    [theta, width],
+    ([t, w]: number[]) => w * (CENTER.cx + ORBIT_R * Math.sin(t)),
+  );
+  const y = useTransform(
+    [theta, height],
+    ([t, h]: number[]) => h * (CENTER.cy + ORBIT_R * Math.cos(t)),
+  );
 
   // Distance travelled around the circle since the top, wrapped to one turn.
   // Rises monotonically across the whole visible arc, so the card furthest
   // along is always the front-most one. The reset from max back to 0 happens
   // at the top of the circle, which is above the hero's clip — it is never
   // seen. See `Z_ORIGIN`.
-  const zIndex = useTransform(theta, (t) => {
+  const desktopZIndex = useTransform(theta, (t) => {
     const swept = (((t - Z_ORIGIN) % TAU) + TAU) % TAU;
     return Math.round((swept / TAU) * 100);
   });
 
   // No scale, no rotation: a card is the same size and the same orientation
   // at every point on the circle. The only thing that changes is where it is.
-  const transform = useTransform(
+  const desktopTransform = useTransform(
     [x, y],
     ([xv, yv]: number[]) => `translate(-50%, -50%) translate(${xv}px, ${yv}px)`,
+  );
+
+  // -------------------------------------------------- mobile peek carousel -
+  // Signed distance from the front position, in half-turns: 0 at front, ±1
+  // at the point directly opposite (mid-swap between sides). Built off the
+  // same `theta` the desktop orbit uses, so both branches stay in lockstep
+  // with `progress`/`nearest`/`goTo` — only how the number is turned into a
+  // position differs.
+  const offset = useTransform(theta, (t) => {
+    let a = t % TAU;
+    if (a > Math.PI) a -= TAU;
+    return a / Math.PI;
+  });
+  const absOffset = useTransform(offset, Math.abs);
+
+  const mobileX = useTransform(
+    [offset, width],
+    ([o, w]: number[]) => o * MOBILE_STACK.spread * w,
+  );
+  const mobileY = useTransform(
+    [absOffset, height],
+    ([a, h]: number[]) => a * MOBILE_STACK.lift * h,
+  );
+  const mobileScale = useTransform(absOffset, [0, 1], [1, 1 - MOBILE_STACK.scaleDrop]);
+  // Stays fully visible while a card is genuinely peeking, then fades out
+  // over the last stretch before it's directly behind the front card — that
+  // fade is what hides the swap instead of it popping from one side to the
+  // other.
+  const mobileOpacity = useTransform(absOffset, [0, 0.6, 1], [1, 1, 0]);
+  const mobileZIndex = useTransform(absOffset, (a) => Math.round((1 - a) * 100));
+
+  const mobileTransform = useTransform(
+    [mobileX, mobileY, mobileScale],
+    ([xv, yv, sv]: number[]) =>
+      `translate(-50%, -50%) translate(${xv}px, ${yv}px) scale(${sv})`,
   );
 
   return (
     <motion.div
       style={{
-        transform,
-        zIndex,
+        transform: isDesktop ? desktopTransform : mobileTransform,
+        zIndex: isDesktop ? desktopZIndex : mobileZIndex,
+        opacity: isDesktop ? 1 : mobileOpacity,
         willChange: "transform",
       }}
       className="absolute top-1/2 left-1/2 aspect-[16/10] w-[62%] lg:w-[65%]"
