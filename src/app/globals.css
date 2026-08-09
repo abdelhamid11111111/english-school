@@ -294,6 +294,74 @@
     }
   }
 
+  /* ------------------------------------------------------------------------
+     COURSES FIT
+     The courses section is *pinned*, so unlike a normal section it cannot be
+     "a bit too tall" — anything past the viewport is simply never reachable
+     while the pin holds. The frame is therefore locked to exactly `h-dvh` at
+     `lg` and everything inside it is measured in `vh` so the stack (heading +
+     four steps + CTA, and the panel beside it) compresses continuously as the
+     window gets shorter instead of overflowing at a breakpoint.
+
+     `clamp(rem, vh, rem)` rather than stepped height media queries as in
+     `.hero-fit`: here there are ~8 vertical values that all have to shrink
+     together, and continuous interpolation avoids a visible jump every time a
+     windowed browser crosses a threshold. The rem floors are what keep the
+     type readable on very short windows.
+
+     Selectors are doubled up (`.courses-fit .x`) purely for specificity — they
+     have to beat the Tailwind margin/size utilities still on the elements,
+     which supply the sub-`lg` values.
+     ---------------------------------------------------------------------- */
+  @media (min-width: 1024px) {
+    .shell.courses-fit {
+      /* Top clears the floating nav island; bottom is optical only. */
+      padding-block: clamp(5rem, 11vh, 7.5rem) clamp(3rem, 7vh, 5rem);
+    }
+
+    .courses-fit .courses-h2 {
+      margin-top: clamp(0.75rem, 2vh, 1.5rem);
+      /* Height-led, with a small width term so the headline still responds to
+         ultrawide. Replaces the width-only --text-h2 step. */
+      font-size: clamp(1.75rem, 3.4vh + 0.6vw, 3.25rem);
+    }
+
+    .courses-fit .courses-list {
+      margin-top: clamp(1.25rem, 3.6vh, 3rem);
+    }
+
+    .courses-fit .courses-step {
+      padding-block: clamp(0.55rem, 1.5vh, 1.25rem);
+    }
+
+    .courses-fit .courses-step-title {
+      font-size: clamp(1.125rem, 2.2vh + 0.2vw, 1.75rem);
+    }
+
+    .courses-fit .courses-rail {
+      margin-top: clamp(0.6rem, 1.6vh, 1.25rem);
+    }
+
+    .courses-fit .courses-cta {
+      margin-top: clamp(1rem, 3vh, 2.5rem);
+    }
+
+    /* The panel drops its fixed aspect ratio and becomes height-led, so the
+       image is whatever the remaining viewport allows rather than whatever
+       16/11 of the column width happens to be. */
+    .courses-fit .courses-panel {
+      height: clamp(17rem, 56vh, 32rem);
+    }
+
+    .courses-fit .courses-panel-pad {
+      padding: clamp(1.1rem, 2.6vh, 2rem);
+    }
+
+    .courses-fit .courses-panel-facts {
+      margin-top: clamp(0.75rem, 2vh, 1.5rem);
+    }
+  }
+
   /* Lime highlight behind a run of dark text — the one place the accent is
      allowed to carry type on a light ground, because the text sits *on* it
      (ink on lime is 14.4:1) rather than being drawn *in* it. */

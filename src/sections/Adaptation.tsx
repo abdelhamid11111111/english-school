@@ -62,7 +62,12 @@ export function Adaptation() {
       aria-labelledby="approach-heading"
     >
       <div className="shell">
-        <div className="section-y pb-0">
+        {/* `pb-0!` must stay important: `.section-y` sets the `padding-block`
+            shorthand from the same @layer utilities, later in source order, so
+            a plain `pb-0` loses the cascade and the section keeps ~11rem of
+            padding under the intro. The gap below is owned by the grid's
+            margin instead, where both columns share it. */}
+        <div className="section-y pb-0!">
           <Reveal>
             <Eyebrow>Who we teach</Eyebrow>
           </Reveal>
@@ -83,13 +88,29 @@ export function Adaptation() {
           </Reveal>
         </div>
 
-        <div className="grid gap-8 lg:grid-cols-12 lg:gap-16">
+        {/* The breathing room under the intro lives here rather than inside the
+            first persona block: a margin on the grid pushes both columns down
+            together, whereas padding on the block would move only the right
+            one and knock it out of line with the panel. */}
+        <div className="mt-14 grid gap-8 lg:mt-20 lg:grid-cols-12 lg:gap-16">
           {/* -------------------------------------------- sticky panel --- */}
-          {/* `self-start` is what makes sticky work inside a grid: without it
-              the item stretches to the row height and has nothing to stick
-              within. */}
-          <div className="hidden lg:col-span-5 lg:block lg:self-start">
-            <div className="sticky top-0 flex h-dvh items-center">
+          {/* The column must keep grid's default `stretch` alignment — that is
+              what makes it as tall as the persona list, and the leftover height
+              is exactly the distance the sticky child travels. `self-start`
+              here would shrink the column to the panel's own height, leaving
+              zero travel room, so the panel would scroll away with the first
+              persona instead of holding. */}
+          <div className="hidden lg:col-span-5 lg:block">
+            {/* No wrapper height and no centring: the box is exactly as tall as
+                the panel, so before it sticks the glyph starts flush with the
+                top of the grid — level with the first persona's label. A taller
+                box would centre the panel inside it and push it below that
+                line, which is what pulled the two columns apart.
+
+                197px is half the panel's height (144 glyph + 24 + 192 text well
+                + 34 rail = 394), so once stuck it sits viewport-centred, level
+                with the centred blocks 02–04. Adjust it if that stack changes. */}
+            <div className="sticky top-[calc(50vh-197px)]">
               <StickyPanel
                 persona={current}
                 plateY={prefersReduced ? undefined : plateY}
@@ -133,7 +154,7 @@ function StickyPanel({
   plateRotate,
 }: StickyPanelProps) {
   return (
-    <div className="relative w-full">
+    <div className=" relative w-full">
       {/* Background plate — the parallax layer. Concentric rings rather than a
           photo, so it never competes with the type. */}
       <motion.div
@@ -180,7 +201,10 @@ function StickyPanel({
           </div>
         </div>
 
-        <div className="mt-10 min-h-[13rem]">
+        {/* Reserved height keeps the progress rail from jumping as titles of
+            different lengths swap through. Kept tight so the whole panel fits
+            the 60vh sticky box on a short laptop. */}
+        <div className="mt-6 min-h-48">
           <AnimatePresence mode="wait">
             <motion.div
               key={persona.id}
@@ -243,7 +267,15 @@ function PersonaBlock({
   return (
     <li
       ref={ref}
-      className="border-line flex min-h-[62vh] flex-col justify-center border-b py-14 last:border-b-0 lg:min-h-[80vh] lg:py-20"
+      className={cn(
+        "border-line mb-8  flex min-h-[62vh] flex-col justify-center border-b py-14 last:border-b-0 lg:min-h-[80vh] lg:py-20",
+        // Block 01 is the one that enters beside the un-stuck panel, so it is
+        // the only one that top-aligns: `justify-start` + no top padding put
+        // its label on the same line as the glyph. Blocks 02–04 keep centring,
+        // which is what holds their text mid-viewport — level with the pinned
+        // panel — for the length of their scroll.
+        index === 0 && "justify-start pt-0 lg:min-h-[70vh]",
+      )}
     >
       <motion.div
         // Inactive blocks recede rather than disappear — the reader keeps

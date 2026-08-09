@@ -1,17 +1,23 @@
 "use client";
 
 import { AnimatePresence, motion } from "motion/react";
+import { Bezel } from "@/components/ui/Bezel";
 import { Eyebrow } from "@/components/ui/Eyebrow";
 import { Glyph } from "@/components/ui/Glyph";
 import { InputField, SelectField, TextareaField } from "@/components/ui/Field";
 import { MagneticButton } from "@/components/ui/MagneticButton";
 import { Reveal } from "@/components/ui/Reveal";
-import { CONTACT_CHANNELS, COURSE_OPTIONS, SOCIALS } from "@/data/content";
+import {
+  CONTACT_CHANNELS,
+  COURSE_OPTIONS,
+  MAP,
+  SOCIALS,
+} from "@/data/content";
 import { useContactForm } from "@/lib/hooks/useContactForm";
 import { EASE_FLUID, EASE_OUT_EXPO } from "@/lib/motion";
 
 /**
- * Contact — info column against the enquiry form.
+ * Contact — info column against the enquiry form, closed by the map band.
  *
  * The form is a real `<form>` with a native submit, so it degrades to a normal
  * POST if JS fails. Validation lives in `useContactForm`; this component only
@@ -104,9 +110,140 @@ export function Contact() {
                 })}
               </ul>
             </Reveal>
+          </div>
 
-            <Reveal delay={0.32}>
-              <div className="border-line mt-10 flex flex-wrap items-center gap-x-6 gap-y-3 border-t pt-8">
+          {/* --------------------------------------------- form column --- */}
+          <div className="lg:col-span-7">
+            <Reveal delay={0.1} variant="plain">
+              <div className="bg-ink/[0.035] ring-ink/[0.06] rounded-bezel-lg p-2 ring-1 ring-inset">
+                <div className="bg-surface rounded-core-lg relative overflow-hidden p-7 shadow-[inset_0_1px_1px_rgb(255_255_255/0.7)] md:p-10">
+                  <AnimatePresence mode="wait">
+                    {status === "success" ? (
+                      <motion.div
+                        key="success"
+                        initial={{ opacity: 0, y: 24, filter: "blur(8px)" }}
+                        animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
+                        exit={{ opacity: 0, y: -16 }}
+                        transition={{ duration: 0.7, ease: EASE_OUT_EXPO }}
+                        className="flex min-h-[26rem] flex-col items-start justify-center"
+                      >
+                        <span className="bg-brand text-on-dark grid size-14 place-items-center rounded-full">
+                          <Glyph name="certificate" className="size-6" />
+                        </span>
+                        <h3 className="font-display text-h3 text-ink mt-7 max-w-[16ch]">
+                          Booked. Check your inbox.
+                        </h3>
+                        <p className="text-ink-soft mt-4 max-w-[42ch] text-[0.9375rem] leading-relaxed">
+                          We&apos;ve sent three placement slots for this week. Pick
+                          whichever suits — or reply and we&apos;ll find another.
+                        </p>
+                        <button
+                          type="button"
+                          onClick={reset}
+                          className="text-accent-ink mt-8 text-[0.9375rem] underline decoration-1 underline-offset-4 transition-opacity duration-500 ease-fluid hover:opacity-70"
+                        >
+                          Send another enquiry
+                        </button>
+                      </motion.div>
+                    ) : (
+                      <motion.form
+                        key="form"
+                        onSubmit={submit}
+                        noValidate
+                        initial={false}
+                        exit={{ opacity: 0, y: -16 }}
+                        transition={{ duration: 0.4, ease: EASE_FLUID }}
+                        className="flex flex-col gap-7"
+                      >
+                        <div className="grid gap-7 sm:grid-cols-2">
+                          <InputField
+                            label="Full name"
+                            name="name"
+                            value={values.name}
+                            error={errorFor("name")}
+                            required
+                            autoComplete="name"
+                            onChange={(v) => setField("name", v)}
+                            onBlur={() => blurField("name")}
+                          />
+                          <InputField
+                            label="Email"
+                            name="email"
+                            type="email"
+                            value={values.email}
+                            error={errorFor("email")}
+                            required
+                            autoComplete="email"
+                            onChange={(v) => setField("email", v)}
+                            onBlur={() => blurField("email")}
+                          />
+                          <InputField
+                            label="Phone (optional)"
+                            name="phone"
+                            type="tel"
+                            value={values.phone}
+                            error={errorFor("phone")}
+                            autoComplete="tel"
+                            onChange={(v) => setField("phone", v)}
+                            onBlur={() => blurField("phone")}
+                          />
+                          <SelectField
+                            label="Course interest"
+                            name="course"
+                            value={values.course}
+                            error={errorFor("course")}
+                            required
+                            options={COURSE_OPTIONS}
+                            onChange={(v) => setField("course", v)}
+                            onBlur={() => blurField("course")}
+                          />
+                        </div>
+
+                        <TextareaField
+                          label="What are you hoping to do in English?"
+                          name="message"
+                          rows={4}
+                          value={values.message}
+                          error={errorFor("message")}
+                          required
+                          onChange={(v) => setField("message", v)}
+                          onBlur={() => blurField("message")}
+                        />
+
+                        <div className="mt-2 flex flex-wrap items-center gap-x-6 gap-y-4">
+                          <MagneticButton
+                            type="submit"
+                            disabled={submitting}
+                            icon={submitting ? <Spinner /> : undefined}
+                          >
+                            {submitting ? "Sending…" : "Request a placement"}
+                          </MagneticButton>
+                          <p className="text-ink-soft max-w-[26ch] text-[0.8125rem] leading-relaxed">
+                            No card, no commitment. We reply within one working
+                            day.
+                          </p>
+                        </div>
+
+                        {/* Live region so a failed submit is announced, not just
+                            shown. `aria-live` on a persistent node — inserting a
+                            new live region often isn't announced at all. */}
+                        <div aria-live="polite" className="sr-only">
+                          {status === "error"
+                            ? "The form has errors. Please review the highlighted fields."
+                            : ""}
+                        </div>
+                      </motion.form>
+                    )}
+                  </AnimatePresence>
+                </div>
+              </div>
+            </Reveal>
+
+            {/* Socials live under the form, not under the info column: the
+                form card is the shorter of the two, and this fills the gap
+                that opened beside the channel list. */}
+            <Reveal delay={0.24}>
+              <div className="border-line mt-9 flex flex-wrap items-center gap-x-8 gap-y-3 border-t pt-7">
                 <span className="text-micro text-ink-soft font-medium uppercase">
                   Follow
                 </span>
@@ -128,135 +265,126 @@ export function Contact() {
               </div>
             </Reveal>
           </div>
-
-          {/* --------------------------------------------- form column --- */}
-          <Reveal delay={0.1} variant="plain" className="lg:col-span-7">
-            <div className="bg-ink/[0.035] ring-ink/[0.06] rounded-bezel-lg p-2 ring-1 ring-inset">
-              <div className="bg-surface rounded-core-lg relative overflow-hidden p-7 shadow-[inset_0_1px_1px_rgb(255_255_255/0.7)] md:p-10">
-                <AnimatePresence mode="wait">
-                  {status === "success" ? (
-                    <motion.div
-                      key="success"
-                      initial={{ opacity: 0, y: 24, filter: "blur(8px)" }}
-                      animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
-                      exit={{ opacity: 0, y: -16 }}
-                      transition={{ duration: 0.7, ease: EASE_OUT_EXPO }}
-                      className="flex min-h-[26rem] flex-col items-start justify-center"
-                    >
-                      <span className="bg-brand text-on-dark grid size-14 place-items-center rounded-full">
-                        <Glyph name="certificate" className="size-6" />
-                      </span>
-                      <h3 className="font-display text-h3 text-ink mt-7 max-w-[16ch]">
-                        Booked. Check your inbox.
-                      </h3>
-                      <p className="text-ink-soft mt-4 max-w-[42ch] text-[0.9375rem] leading-relaxed">
-                        We&apos;ve sent three placement slots for this week. Pick
-                        whichever suits — or reply and we&apos;ll find another.
-                      </p>
-                      <button
-                        type="button"
-                        onClick={reset}
-                        className="text-accent-ink mt-8 text-[0.9375rem] underline decoration-1 underline-offset-4 transition-opacity duration-500 ease-fluid hover:opacity-70"
-                      >
-                        Send another enquiry
-                      </button>
-                    </motion.div>
-                  ) : (
-                    <motion.form
-                      key="form"
-                      onSubmit={submit}
-                      noValidate
-                      initial={false}
-                      exit={{ opacity: 0, y: -16 }}
-                      transition={{ duration: 0.4, ease: EASE_FLUID }}
-                      className="flex flex-col gap-7"
-                    >
-                      <div className="grid gap-7 sm:grid-cols-2">
-                        <InputField
-                          label="Full name"
-                          name="name"
-                          value={values.name}
-                          error={errorFor("name")}
-                          required
-                          autoComplete="name"
-                          onChange={(v) => setField("name", v)}
-                          onBlur={() => blurField("name")}
-                        />
-                        <InputField
-                          label="Email"
-                          name="email"
-                          type="email"
-                          value={values.email}
-                          error={errorFor("email")}
-                          required
-                          autoComplete="email"
-                          onChange={(v) => setField("email", v)}
-                          onBlur={() => blurField("email")}
-                        />
-                        <InputField
-                          label="Phone (optional)"
-                          name="phone"
-                          type="tel"
-                          value={values.phone}
-                          error={errorFor("phone")}
-                          autoComplete="tel"
-                          onChange={(v) => setField("phone", v)}
-                          onBlur={() => blurField("phone")}
-                        />
-                        <SelectField
-                          label="Course interest"
-                          name="course"
-                          value={values.course}
-                          error={errorFor("course")}
-                          required
-                          options={COURSE_OPTIONS}
-                          onChange={(v) => setField("course", v)}
-                          onBlur={() => blurField("course")}
-                        />
-                      </div>
-
-                      <TextareaField
-                        label="What are you hoping to do in English?"
-                        name="message"
-                        rows={4}
-                        value={values.message}
-                        error={errorFor("message")}
-                        required
-                        onChange={(v) => setField("message", v)}
-                        onBlur={() => blurField("message")}
-                      />
-
-                      <div className="mt-2 flex flex-wrap items-center gap-x-6 gap-y-4">
-                        <MagneticButton
-                          type="submit"
-                          disabled={submitting}
-                          icon={submitting ? <Spinner /> : undefined}
-                        >
-                          {submitting ? "Sending…" : "Request a placement"}
-                        </MagneticButton>
-                        <p className="text-ink-soft max-w-[26ch] text-[0.8125rem] leading-relaxed">
-                          No card, no commitment. We reply within one working
-                          day.
-                        </p>
-                      </div>
-
-                      {/* Live region so a failed submit is announced, not just
-                          shown. `aria-live` on a persistent node — inserting a
-                          new live region often isn't announced at all. */}
-                      <div aria-live="polite" className="sr-only">
-                        {status === "error"
-                          ? "The form has errors. Please review the highlighted fields."
-                          : ""}
-                      </div>
-                    </motion.form>
-                  )}
-                </AnimatePresence>
-              </div>
-            </div>
-          </Reveal>
         </div>
+
+        {/* --------------------------------------------------- map band --- */}
+        <Reveal delay={0.12} variant="plain" className="mt-16 lg:mt-24">
+          <StudioMap />
+        </Reveal>
       </div>
     </section>
+  );
+}
+
+/**
+ * StudioMap — the closing band of the contact section.
+ *
+ * Full width rather than a square in the info column: that column is already
+ * the tall one, and a square plate there pushed it far past the form beside it
+ * while leaving dead space on the right. Across the shell the map balances both
+ * columns instead of fighting them, and it hands the page over to the dark
+ * footer the way a "come and visit" line should.
+ *
+ * It wears the same `bezel-lg` tray as the form card, so the section reads as
+ * two plates of one set. The address card floats on the map (Google's own
+ * pattern) instead of stacking a fourth text block under it.
+ *
+ * With no `MAP.embedSrc` set this renders a drawn map ground rather than an
+ * empty box, so the slot reads as designed while the real embed is missing.
+ */
+function StudioMap() {
+  return (
+    <Bezel
+      size="lg"
+      innerClassName="aspect-[4/3] sm:aspect-[2/1] lg:aspect-[64/21]"
+    >
+      {MAP.embedSrc ? (
+        <iframe
+          src={MAP.embedSrc}
+          title={MAP.title}
+          loading="lazy"
+          allowFullScreen
+          referrerPolicy="no-referrer-when-downgrade"
+          className="absolute inset-0 size-full border-0"
+        />
+      ) : (
+        <MapPlaceholder />
+      )}
+
+      {/* Wrapper is click-through so it never steals drag/zoom from the embed;
+          only the card itself takes pointer events. */}
+      <div className="pointer-events-none absolute inset-0 flex items-end p-4 sm:p-6">
+        <div className="ring-ink/[0.07] pointer-events-auto w-full max-w-[20rem] rounded-2xl bg-surface/85 p-5 shadow-[0_2px_10px_rgb(16_18_17/0.06)] ring-1 ring-inset backdrop-blur-md">
+          <p className="text-micro text-ink-soft font-medium uppercase">
+            Studio
+          </p>
+          <p className="text-ink mt-1.5 text-[0.9375rem] leading-snug">
+            {MAP.label}
+          </p>
+          <a
+            href={MAP.directionsHref}
+            target="_blank"
+            rel="noreferrer noopener"
+            className="text-accent-ink mt-3 inline-flex items-center gap-1.5 text-[0.8125rem] underline decoration-1 underline-offset-4 transition-opacity duration-500 ease-fluid hover:opacity-70"
+          >
+            Get directions
+            <span aria-hidden>↗</span>
+            <span className="sr-only"> (opens in a new tab)</span>
+          </a>
+        </div>
+      </div>
+    </Bezel>
+  );
+}
+
+/**
+ * Stand-in map ground: a faint block grid with one road running through it and
+ * a pin on the studio. Deliberately abstract — a fake city that looked real
+ * would be worse than an obvious placeholder.
+ */
+function MapPlaceholder() {
+  return (
+    <div className="absolute inset-0 bg-[color-mix(in_srgb,var(--ink)_2.5%,var(--surface))]">
+      <div
+        aria-hidden
+        className="absolute inset-0"
+        style={{
+          backgroundImage:
+            "linear-gradient(color-mix(in srgb, var(--ink) 5%, transparent) 1px, transparent 1px), linear-gradient(90deg, color-mix(in srgb, var(--ink) 5%, transparent) 1px, transparent 1px)",
+          backgroundSize: "34px 34px",
+        }}
+      />
+      <div
+        aria-hidden
+        className="absolute -inset-8 rotate-[-18deg]"
+        style={{
+          backgroundImage:
+            "linear-gradient(color-mix(in srgb, var(--ink) 4%, transparent) 14px, transparent 14px)",
+          backgroundSize: "100% 190px",
+          backgroundPosition: "0 62px",
+        }}
+      />
+
+      <div className="absolute inset-0 grid place-items-center">
+        <div className="flex flex-col items-center">
+          <span className="relative grid size-11 place-items-center">
+            <span
+              aria-hidden
+              className="bg-accent/25 absolute inset-0 rounded-full"
+            />
+            <span
+              aria-hidden
+              className="bg-brand text-on-dark relative grid size-7 place-items-center rounded-full"
+            >
+              <Glyph name="compass" className="size-3.5" />
+            </span>
+          </span>
+          <p className="text-micro text-ink-soft mt-3 font-medium uppercase">
+            Google Maps embed
+          </p>
+        </div>
+      </div>
+    </div>
   );
 }
 

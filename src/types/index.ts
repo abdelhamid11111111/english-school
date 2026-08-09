@@ -128,6 +128,21 @@ export interface ContactChannel {
   readonly glyph: GlyphName;
 }
 
+/** The studio map slot in the contact section. */
+export interface MapLocation {
+  /**
+   * The `src` of a Google Maps embed iframe (Share → Embed a map → copy the
+   * `src` value only). `null` renders the placeholder square instead.
+   */
+  readonly embedSrc: string | null;
+  /** Short one-line form for the card floating on the map. */
+  readonly label: string;
+  /** "Open in Google Maps" link — works with or without an embed. */
+  readonly directionsHref: string;
+  /** Title for the iframe, read by screen readers. */
+  readonly title: string;
+}
+
 export interface SocialLink {
   readonly id: string;
   readonly label: string;

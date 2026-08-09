@@ -4,6 +4,7 @@ import type {
   CourseOption,
   FaqItem,
   HeroCard,
+  MapLocation,
   NavLink,
   Persona,
   Service,
@@ -450,6 +451,20 @@ export const CONTACT_CHANNELS: readonly ContactChannel[] = [
     glyph: "chart",
   },
 ];
+
+/**
+ * Studio map.
+ *
+ * To go live: Google Maps → Share → Embed a map → copy **only** the `src="…"`
+ * value out of the iframe snippet and paste it as `embedSrc`. Leaving it `null`
+ * renders a labelled placeholder square so the layout is never a hole.
+ */
+export const MAP: MapLocation = {
+  embedSrc: null,
+  label: "Rua das Flores 118 · Lisboa",
+  directionsHref: "https://maps.google.com/?q=Rua+das+Flores+118+Lisboa",
+  title: "Map showing the Lumen English studio in Lisbon",
+};
 
 export const SOCIALS: readonly SocialLink[] = [
   { id: "instagram", label: "Instagram", href: "https://instagram.com" },

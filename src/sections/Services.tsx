@@ -7,8 +7,8 @@ import { Eyebrow } from "@/components/ui/Eyebrow";
 import { MagneticButton } from "@/components/ui/MagneticButton";
 import { Reveal } from "@/components/ui/Reveal";
 import { SERVICES } from "@/data/content";
-import { useGsapContext, ScrollTrigger } from "@/lib/hooks/useGsapContext";
-import { useIsDesktop } from "@/lib/hooks/useMediaQuery";
+import { useGsapContext, gsap } from "@/lib/hooks/useGsapContext";
+import { useMediaQuery } from "@/lib/hooks/useMediaQuery";
 import { useTilt } from "@/lib/hooks/useTilt";
 import { EASE_FLUID, EASE_OUT_EXPO } from "@/lib/motion";
 import { cn } from "@/lib/cn";
@@ -37,6 +37,15 @@ import { cn } from "@/lib/cn";
  * - the **progress bars and image parallax** are written straight to the DOM
  *   via refs, touching only `transform`. No React, no layout.
  *
+ * ## Fitting one viewport
+ *
+ * A pinned frame taller than the viewport is unreachable: the pin holds the
+ * top of the frame at the top of the screen, so anything past 100vh can never
+ * be scrolled to. At `lg` the frame is therefore locked to exactly `h-dvh`
+ * and its contents are sized in `vh` by the `.courses-fit` rules in
+ * `globals.css`, which compress the heading, the four steps and the panel
+ * together as the window gets shorter.
+ *
  * ## Mobile
  *
  * Pinning on touch is unreliable (address-bar resize re-triggers refresh) and
@@ -44,10 +53,14 @@ import { cn } from "@/lib/cn";
  * created and the courses render as a plain stacked list — `isDesktop` is a
  * dependency of the GSAP context, so crossing the breakpoint tears the pin
  * down and rebuilds cleanly.
+ *
+ * The query is `lg` and not the shared `useIsDesktop` (`md`): the two-column
+ * layout below only exists from `lg`, so pinning at `md` would pin the tall
+ * stacked layout and cut its bottom half off.
  */
 export function Services() {
   const [step, setStep] = useState(0);
-  const isDesktop = useIsDesktop();
+  const isDesktop = useMediaQuery("(min-width: 1024px)");
 
   const pinRef = useRef<HTMLDivElement | null>(null);
   const barRefs = useRef<Array<HTMLSpanElement | null>>([]);
@@ -61,19 +74,33 @@ export function Services() {
 
       const count = SERVICES.length;
 
-      ScrollTrigger.create({
-        trigger: container,
-        start: "top top",
-        // Recomputed on refresh (resize, font load) rather than captured once.
-        end: () => `+=${window.innerHeight * count}`,
-        pin: pinRef.current,
-        anticipatePin: 1,
-        scrub: true,
-        invalidateOnRefresh: true,
-        onUpdate: (self) => {
+      // Everything is driven off a scrubbed proxy tween rather than off
+      // `self.progress` in a bare `ScrollTrigger.create`. A numeric `scrub`
+      // smooths the *tween*; the trigger's own `progress` is always the raw
+      // scroll position, so reading it would step with every wheel notch and
+      // throw the smoothing away.
+      const proxy = { progress: 0 };
+
+      gsap.to(proxy, {
+        progress: 1,
+        ease: "none",
+        scrollTrigger: {
+          trigger: container,
+          start: "top top",
+          // Recomputed on refresh (resize, font load) rather than captured once.
+          end: () => `+=${window.innerHeight * count}`,
+          pin: pinRef.current,
+          anticipatePin: 1,
+          // Seconds the scrub takes to catch up. Wheel and trackpad deltas
+          // arrive as discrete jumps; the eased tail is what turns them into
+          // continuous motion through the four steps.
+          scrub: 0.8,
+          invalidateOnRefresh: true,
+        },
+        onUpdate: () => {
           // `progress` is 0–1 across the whole pin; carve it into `count`
           // equal bands. The clamp keeps index in range at exactly 1.0.
-          const raw = self.progress * count;
+          const raw = proxy.progress * count;
           const index = Math.min(count - 1, Math.floor(raw));
           const sub = Math.min(1, raw - index);
 
@@ -108,7 +135,7 @@ export function Services() {
     <section
       id="courses"
       ref={scopeRef}
-      className="bg-brand text-on-dark relative scroll-mt-24"
+      className="bg-brand mt-16 text-on-dark relative scroll-mt-24"
       aria-labelledby="courses-heading"
     >
       <div ref={pinRef} className="relative overflow-hidden">
@@ -122,8 +149,11 @@ export function Services() {
           }}
         />
 
-        <div className="shell relative flex min-h-dvh flex-col justify-center py-24 lg:py-0">
-          <div className="grid items-center gap-14 lg:grid-cols-12 lg:gap-16">
+        {/* `lg:h-dvh` — not `min-h`: while pinned, anything past the viewport
+            is unreachable, so the frame is locked to the screen and
+            `.courses-fit` shrinks the contents to match. */}
+        <div className="shell courses-fit relative flex min-h-dvh flex-col justify-center py-24 lg:h-dvh lg:py-0">
+          <div className="grid items-center gap-14 lg:grid-cols-12 lg:gap-12 xl:gap-16">
             {/* ------------------------------------------- step list --- */}
             <div className="lg:col-span-5">
               <Reveal>
@@ -132,13 +162,13 @@ export function Services() {
               <Reveal delay={0.08}>
                 <h2
                   id="courses-heading"
-                  className="text-h2 text-on-dark text-balance-tight mt-6 max-w-[14ch]"
+                  className="courses-h2 text-h2 text-on-dark text-balance-tight mt-6 max-w-[16ch]"
                 >
                   Pick the shape that fits your week.
                 </h2>
               </Reveal>
 
-              <ol className="mt-12 flex flex-col">
+              <ol className="courses-list mt-12 flex flex-col">
                 {SERVICES.map((service, i) => {
                   const isActive = i === step;
                   return (
@@ -152,7 +182,7 @@ export function Services() {
                           setStep(i);
                         }}
                         aria-current={isActive ? "step" : undefined}
-                        className="group w-full py-5 text-left"
+                        className="courses-step group w-full py-5 text-left"
                       >
                         <span className="flex items-baseline gap-5">
                           <span
@@ -166,7 +196,7 @@ export function Services() {
                           <span className="min-w-0 flex-1">
                             <span
                               className={cn(
-                                "font-display block text-[1.5rem] leading-tight tracking-[-0.02em] transition-colors duration-700 ease-fluid lg:text-[1.75rem]",
+                                "courses-step-title font-display block text-[1.5rem] leading-tight tracking-[-0.02em] transition-colors duration-700 ease-fluid lg:text-[1.75rem]",
                                 isActive
                                   ? "text-on-dark"
                                   : "text-on-dark/45 group-hover:text-on-dark/75",
@@ -190,7 +220,7 @@ export function Services() {
                         </span>
 
                         {/* Progress rail — filled directly by ScrollTrigger. */}
-                        <span className="bg-on-dark/12 mt-5 block h-px w-full overflow-hidden">
+                        <span className="courses-rail bg-on-dark/12 mt-5 block h-px w-full overflow-hidden">
                           <span
                             ref={(el) => {
                               barRefs.current[i] = el;
@@ -209,7 +239,7 @@ export function Services() {
                 })}
               </ol>
 
-              <div className="mt-10 hidden lg:block">
+              <div className="courses-cta mt-10 hidden lg:block">
                 <MagneticButton href="#contact" variant="onDark">
                   Talk to an advisor
                 </MagneticButton>
@@ -268,7 +298,10 @@ function ServicePanel({ index, parallaxRef }: ServicePanelProps) {
       className="bg-on-dark/[0.055] ring-on-dark/10 rounded-bezel-lg p-2 ring-1 ring-inset"
     >
       <div className="rounded-core-lg bg-brand-2 relative overflow-hidden shadow-[inset_0_1px_1px_rgb(255_255_255/0.09)]">
-        <div className="relative aspect-[4/3] w-full overflow-hidden lg:aspect-[16/11]">
+        {/* Aspect-driven below `lg`, height-driven above: inside the pin the
+            panel gets whatever vertical room is left, not whatever 16/11 of
+            the column width happens to be. */}
+        <div className="courses-panel relative aspect-[4/3] w-full overflow-hidden lg:aspect-auto">
           {/* Parallax carrier — ScrollTrigger writes its transform. Scaled
               past 1 so the drift never exposes an edge. */}
           <div
@@ -307,7 +340,7 @@ function ServicePanel({ index, parallaxRef }: ServicePanelProps) {
           {/* Floating fact chips — pushed forward in Z so the tilt separates
               them from the photo behind. */}
           <div
-            className="absolute inset-x-0 bottom-0 p-6 lg:p-8"
+            className="courses-panel-pad absolute inset-x-0 bottom-0 p-6 lg:p-8"
             style={{ transform: "translateZ(38px)" }}
           >
             <AnimatePresence mode="wait">
@@ -321,7 +354,7 @@ function ServicePanel({ index, parallaxRef }: ServicePanelProps) {
                 <p className="text-on-dark-soft hidden max-w-[44ch] text-[0.9375rem] leading-relaxed lg:block">
                   {service.description}
                 </p>
-                <ul className="mt-6 flex flex-wrap gap-2">
+                <ul className="courses-panel-facts mt-6 flex flex-wrap gap-2">
                   {service.facts.map((fact) => (
                     <li
                       key={fact.label}
