@@ -188,7 +188,7 @@ export function SiteNav() {
                 ))}
               </ul>
 
-              <motion.div
+              {/* <motion.div
                 initial={{ y: 24, opacity: 0 }}
                 animate={{ y: 0, opacity: 1 }}
                 exit={{ y: 16, opacity: 0 }}
@@ -201,7 +201,7 @@ export function SiteNav() {
                 >
                   Book a placement
                 </MagneticButton>
-              </motion.div>
+              </motion.div> */}
             </nav>
           </motion.div>
         )}
